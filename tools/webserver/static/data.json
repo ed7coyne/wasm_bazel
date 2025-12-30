@@ -1,0 +1,27 @@
+{
+  "name": "Static Webserver Test",
+  "version": "1.0.0",
+  "description": "Test data file for static webserver",
+  "features": [
+    "Static file serving",
+    "MIME type detection", 
+    "Error handling (404)",
+    "Bazel runfiles integration"
+  ],
+  "configuration": {
+    "port": 8080,
+    "host": "0.0.0.0",
+    "root_directory": "tools/webserver/static"
+  },
+  "test_status": {
+    "html": "✅ Working",
+    "css": "✅ Working",
+    "javascript": "✅ Working",
+    "json": "✅ Working"
+  },
+  "server_info": {
+    "library": "uWebSockets",
+    "language": "C++",
+    "build_system": "Bazel"
+  }
+}
