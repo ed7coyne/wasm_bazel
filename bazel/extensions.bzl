@@ -1,7 +1,7 @@
 # bazel/extensions.bzl
 """Module extension for setting up the WASM toolchain."""
 
-load("//bazel:wasm_toolchain.bzl", "wasm_toolchain_repo")
+load("//bazel:unified_toolchain.bzl", "wasm_toolchain_repo")
 
 def _wasm_impl(mctx):
     """Implementation of the wasm module extension."""

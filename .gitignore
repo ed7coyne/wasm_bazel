@@ -1,2 +1,3 @@
 /bazel-*
 *.swp
+MODULE.bazel.lock
