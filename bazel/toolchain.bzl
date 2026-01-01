@@ -1,4 +1,4 @@
-# bazel/unified_toolchain.bzl
+# bazel/toolchain.bzl
 """WASM toolchain configuration for Bazel.
 
 This module provides a cc_toolchain_config rule that configures a WASM/WASI
@@ -381,7 +381,7 @@ def _wasm_toolchain_repo_impl(rctx):
 package(default_visibility = ["//visibility:public"])
 
 load("@rules_cc//cc:defs.bzl", "cc_toolchain")
-load("@wasm_toolchain//bazel:unified_toolchain.bzl", "wasm32_wasi_toolchain_config")
+load("@wasm_toolchain//bazel:toolchain.bzl", "wasm32_wasi_toolchain_config")
 
 # Filegroup for all tools
 filegroup(
