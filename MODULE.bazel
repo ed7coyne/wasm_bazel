@@ -41,3 +41,6 @@ filegroup(
 )
 
 register_toolchains("//:wasm32-wasi-toolchain")
+
+# Expose repositories to consumers of this module
+use_repo(wasi_sdk = "wasi_sdk", wasmer = "wasmer")
