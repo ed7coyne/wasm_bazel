@@ -3,7 +3,7 @@ Transitions and rules for building and running WebAssembly (WASM) targets.
 
 This module defines:
 1. `wasm_platform_transition`: A transition that forces the build configuration
-   to use the `//:wasm32_wasi` platform.
+   to use the `@wasm_toolchain//:wasm32_wasi` platform.
 2. `wasm_binary`: A rule that applies the transition to build a binary for WASM.
 3. `wasm_run`: A rule that builds a WASM binary (transitioned) and wraps it
    in a script to execute it with a specified runner (e.g., wasmer).
@@ -11,7 +11,7 @@ This module defines:
 
 def _wasm_platform_transition_impl(settings, attr):
     return {
-        "//command_line_option:platforms": "//:wasm32_wasi",
+        "//command_line_option:platforms": "@wasm_toolchain//:wasm32_wasi",
     }
 
 wasm_platform_transition = transition(
@@ -129,7 +129,7 @@ wasm_run = rule(
     executable = True,
     attrs = {
         "binary": attr.label(cfg = wasm_platform_transition, allow_files = True),
-        "runner": attr.label(allow_files = True),
+        "runner": attr.label(allow_files = True, default = "@wasmer//:wasmer"),
         "_allowlist_function_transition": attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
         ),

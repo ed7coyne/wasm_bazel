@@ -1,8 +1,8 @@
-# bazel/toolchain.bzl
+# bazel/toolchain_config.bzl
 """WASM toolchain configuration for Bazel.
 
 This module provides a cc_toolchain_config rule that configures a WASM/WASI
-toolchain using the wasi-sdk.
+toolchain using string paths (for use with symlinked tools).
 """
 
 load("@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl", 
@@ -15,76 +15,70 @@ load("@bazel_tools//tools/cpp:cc_toolchain_config_lib.bzl",
 load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 
 def _impl(ctx):
-    # The key insight: we need to use paths that are relative to the execution root,
-    # not relative to the package where this rule is instantiated.
-    #
-    # When using action_config with tool(path=...), the path is relative to the
-    # execution root. But when using tool_path, it's relative to the package.
-    #
-    # The file.path attribute gives us the path relative to the execution root,
-    # which is what we need for action_config.
+    """Implementation of the wasm32_wasi_toolchain_config rule."""
     
-    clang_path = ctx.file.clang.path
-    clang_pp_path = ctx.file.clang_pp.path
-    wasm_ld_path = ctx.file.wasm_ld.path
-    llvm_ar_path = ctx.file.llvm_ar.path
-    llvm_nm_path = ctx.file.llvm_nm.path
-    llvm_objcopy_path = ctx.file.llvm_objcopy.path
-    llvm_objdump_path = ctx.file.llvm_objdump.path
-    llvm_strip_path = ctx.file.llvm_strip.path
+    # Tool paths are relative to the package where cc_toolchain is defined
+    # Since we symlink tools into bin/, we use simple relative paths
+    tools_prefix = ctx.attr.tools_path_prefix
+    sysroot = ctx.attr.sysroot_path
+    lib_path = ctx.attr.lib_path
     
-    # Create action configs with explicit tool paths
-    # The tool path in action_config is relative to the execution root
+    # Create action configs with tool paths
     action_configs = [
         action_config(
             action_name = ACTION_NAMES.c_compile,
-            tools = [tool(path = clang_path)],
+            tools = [tool(path = tools_prefix + "clang")],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_compile,
-            tools = [tool(path = clang_pp_path)],
+            tools = [tool(path = tools_prefix + "clang++")],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_link_executable,
-            tools = [tool(path = clang_pp_path)],
+            tools = [tool(path = tools_prefix + "clang++")],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_link_dynamic_library,
-            tools = [tool(path = clang_pp_path)],
+            tools = [tool(path = tools_prefix + "clang++")],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_link_nodeps_dynamic_library,
-            tools = [tool(path = clang_pp_path)],
+            tools = [tool(path = tools_prefix + "clang++")],
         ),
         action_config(
             action_name = ACTION_NAMES.assemble,
-            tools = [tool(path = clang_path)],
+            tools = [tool(path = tools_prefix + "clang")],
         ),
         action_config(
             action_name = ACTION_NAMES.preprocess_assemble,
-            tools = [tool(path = clang_path)],
+            tools = [tool(path = tools_prefix + "clang")],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_module_compile,
-            tools = [tool(path = clang_pp_path)],
+            tools = [tool(path = tools_prefix + "clang++")],
         ),
         action_config(
             action_name = ACTION_NAMES.cpp_header_parsing,
-            tools = [tool(path = clang_pp_path)],
+            tools = [tool(path = tools_prefix + "clang++")],
         ),
         action_config(
             action_name = ACTION_NAMES.strip,
-            tools = [tool(path = llvm_strip_path)],
+            tools = [tool(path = tools_prefix + "llvm-strip")],
         ),
     ]
     
-    # tool_paths are still required but won't be used since we have action_configs
-    # We use dummy paths since they won't actually be used
-    tool_paths = []
-    
-    # Get sysroot path - for flags we need execution root relative paths
-    sysroot_path = ctx.file.sysroot_include.path.replace("/include/wasm32-wasi/stdint.h", "")
-    repo_root = sysroot_path.replace("/share/wasi-sysroot", "")
+    # tool_paths are still required for some tools
+    tool_paths = [
+        tool_path(name = "ar", path = tools_prefix + "llvm-ar"),
+        tool_path(name = "cpp", path = tools_prefix + "clang++"),
+        tool_path(name = "gcc", path = tools_prefix + "clang"),
+        tool_path(name = "gcov", path = "/bin/false"),
+        tool_path(name = "ld", path = tools_prefix + "wasm-ld"),
+        tool_path(name = "nm", path = tools_prefix + "llvm-nm"),
+        tool_path(name = "objcopy", path = tools_prefix + "llvm-objcopy"),
+        tool_path(name = "objdump", path = tools_prefix + "llvm-objdump"),
+        tool_path(name = "strip", path = tools_prefix + "llvm-strip"),
+    ]
     
     # Base compiler flags
     base_compiler_flags = [
@@ -113,9 +107,9 @@ def _impl(ctx):
         debug_flags +
         wasi_emulation_flags +
         ["-DFMT_USE_FCNTL=0"] +
-        ["-isystem", sysroot_path + "/include/wasm32-wasi/c++/v1"] +
-        ["-isystem", sysroot_path + "/include/wasm32-wasi"] +
-        ["-isystem", repo_root + "/lib/clang/21/include"] +
+        ["-isystem", sysroot + "/include/wasm32-wasi/c++/v1"] +
+        ["-isystem", sysroot + "/include/wasm32-wasi"] +
+        ["-isystem", lib_path + "/clang/21/include"] +
         ctx.attr.additional_compiler_flags
     )
     
@@ -188,7 +182,7 @@ def _impl(ctx):
                 flag_groups = [
                     flag_group(
                         flags = [
-                            "--sysroot=" + sysroot_path,
+                            "--sysroot=" + sysroot,
                         ],
                     ),
                 ],
@@ -208,9 +202,9 @@ def _impl(ctx):
         action_configs = action_configs,
         features = [sysroot_feature, default_flags_feature] + unsupported_features,
         cxx_builtin_include_directories = [
-            sysroot_path + "/include/wasm32-wasi/c++/v1",
-            sysroot_path + "/include/wasm32-wasi",
-            repo_root + "/lib/clang/21/include",
+            sysroot + "/include/wasm32-wasi/c++/v1",
+            sysroot + "/include/wasm32-wasi",
+            lib_path + "/clang/21/include",
         ],
         toolchain_identifier = "wasm32-wasi",
         host_system_name = "local",
@@ -221,21 +215,25 @@ def _impl(ctx):
         abi_version = "wasi",
         abi_libc_version = "wasi",
         tool_paths = tool_paths,
-        builtin_sysroot = sysroot_path,
+        builtin_sysroot = sysroot,
     )
 
 wasm32_wasi_toolchain_config = rule(
     implementation = _impl,
     attrs = {
-        "clang": attr.label(allow_single_file = True),
-        "clang_pp": attr.label(allow_single_file = True),
-        "wasm_ld": attr.label(allow_single_file = True),
-        "llvm_ar": attr.label(allow_single_file = True),
-        "llvm_nm": attr.label(allow_single_file = True),
-        "llvm_objcopy": attr.label(allow_single_file = True),
-        "llvm_objdump": attr.label(allow_single_file = True),
-        "llvm_strip": attr.label(allow_single_file = True),
-        "sysroot_include": attr.label(allow_single_file = True),
+        # Path configuration (relative to the package)
+        "tools_path_prefix": attr.string(
+            default = "bin/",
+            doc = "Prefix for tool paths, relative to the package",
+        ),
+        "sysroot_path": attr.string(
+            default = "sysroot",
+            doc = "Path to the sysroot, relative to the package",
+        ),
+        "lib_path": attr.string(
+            default = "lib",
+            doc = "Path to the lib directory (for clang headers), relative to the package",
+        ),
         
         # Configuration options
         "enable_rtti": attr.bool(default = False),
