@@ -8,9 +8,6 @@ cc_binary(
         "@platforms//os:wasi",
         "@platforms//cpu:wasm32",
     ],
-    deps = [
-        "@fmt",
-    ],
 )
 
 wasm_binary(
@@ -22,17 +19,4 @@ wasm_run(
     name = "hello",
     binary = ":hello_bin",
     runner = "@wasmer//:wasmer",
-)
-
-cc_test(
-    name = "hello_test",
-    srcs = ["hello_test.cc"],
-    data = [
-        ":hello_wasm",
-    ],
-    deps = [
-        "@bazel_tools//tools/cpp/runfiles",
-        "@com_google_googletest//:gtest_main",
-        "//utils:wasmtime_runner",
-    ],
 )

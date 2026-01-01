@@ -16,7 +16,6 @@ wasm32_wasi_toolchain_config(
     sysroot_include = "@wasi_sdk//:share/wasi-sysroot/include/wasm32-wasi/stdint.h",
 )
 
-# Define the WASI platform
 platform(
     name = "wasm32_wasi",
     constraint_values = [
@@ -25,7 +24,6 @@ platform(
     ],
 )
 
-# Define the WASI toolchain
 toolchain(
     name = "wasm32-wasi-toolchain",
     exec_compatible_with = [

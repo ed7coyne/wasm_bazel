@@ -1,13 +1,21 @@
-module(name = "wasm-bazel")
+module(
+    name = "wasm_toolchain",
+    version = "0.1.0",
+)
 
 bazel_dep(name = "rules_cc", version = "0.1.1")
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "platforms", version = "0.0.11")
-bazel_dep(name = "fmt", version = "11.0.2")
-bazel_dep(name = "abseil-cpp", version = "20240722.0")
-bazel_dep(name = "flatbuffers", version = "25.9.23")
-bazel_dep(name = "nlohmann_json", version = "3.11.3")
-bazel_dep(name = "zlib", version = "1.3.1")
+
+string_flag = use_repo_rule("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+string_flag(
+    name = "wasi_sdk_version",
+    build_setting_default = "29.0",
+)
+string_flag(
+    name = "wasi_sdk_arch",
+    build_setting_default = "arm64-linux",
+)
 
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -20,13 +28,6 @@ http_archive(
 )
 
 http_archive(
-    name = "com_google_googletest",
-    sha256 = "353571c2440176ded91c2de6d6cd88ddd41401d14692ec1f99e35d013feda55a",
-    strip_prefix = "googletest-release-1.11.0",
-    urls = ["https://github.com/google/googletest/archive/refs/tags/release-1.11.0.zip"],
-)
-
-http_archive(
     name = "wasmer",
     url = "https://github.com/wasmerio/wasmer/releases/download/v6.1.0/wasmer-linux-aarch64.tar.gz",
     sha256 = "1be37c5502d9135bbef1a34433bf20cbcd1d46f7d0662331016aeb3a5e0fbbf8",
@@ -34,61 +35,6 @@ http_archive(
 filegroup(
     name = "wasmer",
     srcs = ["bin/wasmer"],
-    visibility = ["//visibility:public"],
-)
-""",
-)
-
-http_archive(
-    name = "wasmtime",
-    url = "https://github.com/bytecodealliance/wasmtime/releases/download/v29.0.0/wasmtime-v29.0.0-aarch64-linux-c-api.tar.xz",
-    sha256 = "441a4441821d5886f8466ceda39b43912594165ebd3cbe67df39611d61021bb5",
-    strip_prefix = "wasmtime-v29.0.0-aarch64-linux-c-api",
-    build_file_content = """
-cc_library(
-    name = "wasmtime",
-    srcs = ["lib/libwasmtime.a"],
-    hdrs = glob(["include/**/*.h", "include/**/*.hh"]),
-    includes = ["include"],
-    linkopts = ["-lpthread", "-ldl", "-lm"],
-    visibility = ["//visibility:public"],
-)
-""",
-)
-
-http_archive(
-    name = "usockets",
-    url = "https://github.com/uNetworking/uSockets/archive/v0.8.8.tar.gz",
-    sha256 = "d14d2efe1df767dbebfb8d6f5b52aa952faf66b30c822fbe464debaa0c5c0b17",
-    strip_prefix = "uSockets-0.8.8",
-    build_file_content = """
-cc_library(
-    name = "usockets",
-    srcs = glob(["src/*.c", "src/**/*.c"], exclude = ["src/crypto/*.c", "src/ssl/*.c"]),
-    hdrs = glob(["src/*.h", "src/**/*.h"]),
-    includes = ["src"],
-    defines = ["LIBUS_NO_SSL"],
-    visibility = ["//visibility:public"],
-)
-""",
-)
-
-http_archive(
-    name = "uwebsockets",
-    url = "https://github.com/uNetworking/uWebSockets/archive/v20.64.0.tar.gz",
-    sha256 = "bb81fa773dcbd6bc738904ad496554fd131a33269570e0e86fa09213d82ba9ef",
-    strip_prefix = "uWebSockets-20.64.0",
-    build_file_content = """
-cc_library(
-    name = "uwebsockets_lib",
-    hdrs = glob(["src/*.h", "src/**/*.h"]),
-    includes = ["."],
-    strip_include_prefix = "src",
-    include_prefix = "uwebsockets",
-    deps = [
-        "@usockets//:usockets",
-        "@zlib//:zlib",
-    ],
     visibility = ["//visibility:public"],
 )
 """,

@@ -1,4 +1,4 @@
-#include <fmt/core.h>
+#include <stdio.h>
 #include <string>
 
 int main(int argc, char** argv) {
@@ -6,6 +6,6 @@ int main(int argc, char** argv) {
     if (argc > 1) {
         name = argv[1];
     }
-    fmt::print("Hello {}!\n", name);
+    printf("Hello %s!\n", name.c_str());
     return 0;
 }
